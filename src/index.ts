@@ -1,10 +1,11 @@
 import * as PIXI from "pixi.js";
 
 import rabbitImage from "./assets/rabbit.png";
+import getObjectsUnderPoint from "./getObjectsUnderPoint";
 
 export class Main {
-    private static readonly GAME_WIDTH = 800;
-    private static readonly GAME_HEIGHT = 600;
+    private static readonly GAME_WIDTH = 1280;
+    private static readonly GAME_HEIGHT = 720;
 
     private app: PIXI.Application | undefined;
 
@@ -12,11 +13,6 @@ export class Main {
         window.onload = (): void => {
             this.startLoadingAssets();
         };
-    }
-
-    // add for the test example purpose
-    public helloWorld(): string {
-        return "hello world";
     }
 
     private startLoadingAssets(): void {
@@ -34,20 +30,11 @@ export class Main {
     private onAssetsLoaded(): void {
         this.createRenderer();
 
-        const stage = this.app!.stage;
+        this.intervalAddDisplayObjects(this.app.stage);
 
-        const bunny = this.getBunny();
-        bunny.position.set(Main.GAME_WIDTH / 2, Main.GAME_HEIGHT / 2);
-
-        const birdFromSprite = this.getBird();
-        birdFromSprite.anchor.set(0.5, 0.5);
-        birdFromSprite.position.set(Main.GAME_WIDTH / 2, Main.GAME_HEIGHT / 2 + bunny.height);
-
-        stage.addChild(bunny);
-        stage.addChild(birdFromSprite);
-
-        this.app!.ticker.add(() => {
-            bunny.rotation += 0.05;
+        this.app.stage.interactive = true;
+        this.app.stage.addListener("click", e => {
+            console.log(getObjectsUnderPoint(this.app, e));
         });
     }
 
@@ -58,34 +45,56 @@ export class Main {
             height: Main.GAME_HEIGHT,
         });
 
+        const stage = this.app.stage;
+        stage.addChild(this.getRect(0xff0000, Main.GAME_WIDTH, Main.GAME_HEIGHT));
+
         document.body.appendChild(this.app.view);
-
-        this.app.renderer.resize(window.innerWidth, window.innerHeight);
-        this.app.stage.scale.x = window.innerWidth / Main.GAME_WIDTH;
-        this.app.stage.scale.y = window.innerHeight / Main.GAME_HEIGHT;
-
-        window.addEventListener("resize", this.onResize.bind(this));
     }
 
-    private onResize(): void {
-        if (!this.app) {
-            return;
-        }
+    private intervalAddDisplayObjects(stage: PIXI.Container) {
+        setInterval(() => {
+            switch (this.getRandomIntInclusive(0, 2)) {
+                case 0:
+                    const bunny = this.getBunny();
+                    bunny.x = this.getRandomIntInclusive(0, Main.GAME_WIDTH);
+                    bunny.y = this.getRandomIntInclusive(0, Main.GAME_HEIGHT);
+                    stage.addChild(bunny);
+                    break;
+                case 1:
+                    const rect = this.getRect(
+                        this.getRandomIntInclusive(0, 4000000),
+                        this.getRandomIntInclusive(100, 300),
+                        this.getRandomIntInclusive(100, 300)
+                    );
+                    rect.x = this.getRandomIntInclusive(0, Main.GAME_WIDTH);
+                    rect.y = this.getRandomIntInclusive(0, Main.GAME_HEIGHT);
+                    stage.addChild(rect);
+                    break;
+                case 2:
+                    const bird = this.getBird();
+                    bird.x = this.getRandomIntInclusive(0, Main.GAME_WIDTH);
+                    bird.y = this.getRandomIntInclusive(0, Main.GAME_HEIGHT);
+                    stage.addChild(bird);
+                    break;
+            }
+        }, 1000);
+    }
 
-        this.app.renderer.resize(window.innerWidth, window.innerHeight);
-        this.app.stage.scale.x = window.innerWidth / Main.GAME_WIDTH;
-        this.app.stage.scale.y = window.innerHeight / Main.GAME_HEIGHT;
+    private getRect(color: number, width: number, height: number): PIXI.Graphics {
+        let g = new PIXI.Graphics();
+        g.beginFill(color);
+        g.drawRect(0, 0, width, height);
+        g.endFill();
+        g.alpha = 0.2;
+
+        return g;
     }
 
     private getBunny(): PIXI.Sprite {
-        const bunnyRotationPoint = {
-            x: 0.5,
-            y: 0.5,
-        };
-
         const bunny = new PIXI.Sprite(PIXI.Texture.from("rabbit"));
-        bunny.anchor.set(bunnyRotationPoint.x, bunnyRotationPoint.y);
         bunny.scale.set(2, 2);
+        bunny.alpha = 0.3;
+        bunny.tint = this.getRandomIntInclusive(0, 100000000);
 
         return bunny;
     }
@@ -96,12 +105,19 @@ export class Main {
             PIXI.Texture.from("birdMiddle.png"),
             PIXI.Texture.from("birdDown.png"),
         ]);
+        bird.tint = this.getRandomIntInclusive(0, 100000000);
         bird.loop = true;
         bird.animationSpeed = 0.1;
         bird.play();
         bird.scale.set(3);
 
         return bird;
+    }
+
+    private getRandomIntInclusive(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive
     }
 }
 
